@@ -1,1 +1,794 @@
-{"metadata":{"kernelspec":{"display_name":"Python 3","language":"python","name":"python3"},"language_info":{"name":"python","version":"3.11.13","mimetype":"text/x-python","codemirror_mode":{"name":"ipython","version":3},"pygments_lexer":"ipython3","nbconvert_exporter":"python","file_extension":".py"},"kaggle":{"accelerator":"none","dataSources":[{"sourceType":"competition","sourceId":10211,"databundleVersionId":111096}],"dockerImageVersionId":31153,"isInternetEnabled":false,"language":"python","sourceType":"notebook","isGpuEnabled":false}},"nbformat_minor":4,"nbformat":4,"cells":[{"cell_type":"markdown","source":"**This notebook is an exercise in the [Intermediate Machine Learning](https://www.kaggle.com/learn/intermediate-machine-learning) course.  You can reference the tutorial at [this link](https://www.kaggle.com/alexisbcook/introduction).**\n\n---\n","metadata":{}},{"cell_type":"markdown","source":"As a warm-up, you'll review some machine learning fundamentals and submit your initial results to a Kaggle competition.\n\n# Setup\n\nThe questions below will give you feedback on your work. Run the following cell to set up the feedback system.","metadata":{}},{"cell_type":"code","source":"# Set up code checking\nimport os\nif not os.path.exists(\"../input/train.csv\"):\n    os.symlink(\"../input/home-data-for-ml-course/train.csv\", \"../input/train.csv\")  \n    os.symlink(\"../input/home-data-for-ml-course/test.csv\", \"../input/test.csv\")  \nfrom learntools.core import binder\nbinder.bind(globals())\nfrom learntools.ml_intermediate.ex1 import *\nprint(\"Setup Complete\")","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T08:51:22.149074Z","iopub.execute_input":"2026-02-26T08:51:22.149373Z","iopub.status.idle":"2026-02-26T08:51:23.812753Z","shell.execute_reply.started":"2026-02-26T08:51:22.149342Z","shell.execute_reply":"2026-02-26T08:51:23.811391Z"}},"outputs":[{"name":"stdout","text":"Setup Complete\n","output_type":"stream"}],"execution_count":1},{"cell_type":"markdown","source":"You will work with data from the [Housing Prices Competition for Kaggle Learn Users](https://www.kaggle.com/c/home-data-for-ml-course) to predict home prices in Iowa using 79 explanatory variables describing (almost) every aspect of the homes.  \n\n![Ames Housing dataset image](https://storage.googleapis.com/kaggle-media/learn/images/lTJVG4e.png)\n\nRun the next code cell without changes to load the training and validation features in `X_train` and `X_valid`, along with the prediction targets in `y_train` and `y_valid`.  The test features are loaded in `X_test`.  (_If you need to review **features** and **prediction targets**, please check out [this short tutorial](https://www.kaggle.com/dansbecker/your-first-machine-learning-model).  To read about model **validation**, look [here](https://www.kaggle.com/dansbecker/model-validation).  Alternatively, if you'd prefer to look through a full course to review all of these topics, start [here](https://www.kaggle.com/learn/machine-learning).)_","metadata":{}},{"cell_type":"code","source":"import pandas as pd\nfrom sklearn.model_selection import train_test_split\n\n# Read the data\nX_full = pd.read_csv('../input/train.csv', index_col='Id')\nX_test_full = pd.read_csv('../input/test.csv', index_col='Id')\n\n# Obtain target and predictors\ny = X_full.SalePrice\nfeatures = ['LotArea', 'YearBuilt', '1stFlrSF', '2ndFlrSF', 'FullBath', 'BedroomAbvGr', 'TotRmsAbvGrd']\nX = X_full[features].copy()\nX_test = X_test_full[features].copy()\n\n# Break off validation set from training data\nX_train, X_valid, y_train, y_valid = train_test_split(X, y, train_size=0.8, test_size=0.2,\n                                                      random_state=0)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T08:54:58.693006Z","iopub.execute_input":"2026-02-26T08:54:58.693336Z","iopub.status.idle":"2026-02-26T08:54:58.782174Z","shell.execute_reply.started":"2026-02-26T08:54:58.693313Z","shell.execute_reply":"2026-02-26T08:54:58.781202Z"}},"outputs":[],"execution_count":2},{"cell_type":"markdown","source":"Use the next cell to print the first several rows of the data. It's a nice way to get an overview of the data you will use in your price prediction model.","metadata":{}},{"cell_type":"code","source":"X_train.head()","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T08:55:08.255067Z","iopub.execute_input":"2026-02-26T08:55:08.255392Z","iopub.status.idle":"2026-02-26T08:55:08.278445Z","shell.execute_reply.started":"2026-02-26T08:55:08.255367Z","shell.execute_reply":"2026-02-26T08:55:08.277534Z"}},"outputs":[{"execution_count":3,"output_type":"execute_result","data":{"text/plain":"     LotArea  YearBuilt  1stFlrSF  2ndFlrSF  FullBath  BedroomAbvGr  \\\nId                                                                    \n619    11694       2007      1828         0         2             3   \n871     6600       1962       894         0         1             2   \n93     13360       1921       964         0         1             2   \n818    13265       2002      1689         0         2             3   \n303    13704       2001      1541         0         2             3   \n\n     TotRmsAbvGrd  \nId                 \n619             9  \n871             5  \n93              5  \n818             7  \n303             6  ","text/html":"<div>\n<style scoped>\n    .dataframe tbody tr th:only-of-type {\n        vertical-align: middle;\n    }\n\n    .dataframe tbody tr th {\n        vertical-align: top;\n    }\n\n    .dataframe thead th {\n        text-align: right;\n    }\n</style>\n<table border=\"1\" class=\"dataframe\">\n  <thead>\n    <tr style=\"text-align: right;\">\n      <th></th>\n      <th>LotArea</th>\n      <th>YearBuilt</th>\n      <th>1stFlrSF</th>\n      <th>2ndFlrSF</th>\n      <th>FullBath</th>\n      <th>BedroomAbvGr</th>\n      <th>TotRmsAbvGrd</th>\n    </tr>\n    <tr>\n      <th>Id</th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n      <th></th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <th>619</th>\n      <td>11694</td>\n      <td>2007</td>\n      <td>1828</td>\n      <td>0</td>\n      <td>2</td>\n      <td>3</td>\n      <td>9</td>\n    </tr>\n    <tr>\n      <th>871</th>\n      <td>6600</td>\n      <td>1962</td>\n      <td>894</td>\n      <td>0</td>\n      <td>1</td>\n      <td>2</td>\n      <td>5</td>\n    </tr>\n    <tr>\n      <th>93</th>\n      <td>13360</td>\n      <td>1921</td>\n      <td>964</td>\n      <td>0</td>\n      <td>1</td>\n      <td>2</td>\n      <td>5</td>\n    </tr>\n    <tr>\n      <th>818</th>\n      <td>13265</td>\n      <td>2002</td>\n      <td>1689</td>\n      <td>0</td>\n      <td>2</td>\n      <td>3</td>\n      <td>7</td>\n    </tr>\n    <tr>\n      <th>303</th>\n      <td>13704</td>\n      <td>2001</td>\n      <td>1541</td>\n      <td>0</td>\n      <td>2</td>\n      <td>3</td>\n      <td>6</td>\n    </tr>\n  </tbody>\n</table>\n</div>"},"metadata":{}}],"execution_count":3},{"cell_type":"markdown","source":"The next code cell defines five different random forest models.  Run this code cell without changes.  (_To review **random forests**, look [here](https://www.kaggle.com/dansbecker/random-forests)._)","metadata":{}},{"cell_type":"code","source":"from sklearn.ensemble import RandomForestRegressor\n\n# Define the models\nmodel_1 = RandomForestRegressor(n_estimators=50, random_state=0)\nmodel_2 = RandomForestRegressor(n_estimators=100, random_state=0)\nmodel_3 = RandomForestRegressor(n_estimators=100, criterion='absolute_error', random_state=0)\nmodel_4 = RandomForestRegressor(n_estimators=200, min_samples_split=20, random_state=0)\nmodel_5 = RandomForestRegressor(n_estimators=100, max_depth=7, random_state=0)\n\nmodels = [model_1, model_2, model_3, model_4, model_5]","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T08:59:03.235236Z","iopub.execute_input":"2026-02-26T08:59:03.235587Z","iopub.status.idle":"2026-02-26T08:59:03.241673Z","shell.execute_reply.started":"2026-02-26T08:59:03.235560Z","shell.execute_reply":"2026-02-26T08:59:03.240728Z"}},"outputs":[],"execution_count":4},{"cell_type":"markdown","source":"To select the best model out of the five, we define a function `score_model()` below.  This function returns the mean absolute error (MAE) from the validation set.  Recall that the best model will obtain the lowest MAE.  (_To review **mean absolute error**, look [here](https://www.kaggle.com/dansbecker/model-validation).)_\n\nRun the code cell without changes.","metadata":{}},{"cell_type":"code","source":"from sklearn.metrics import mean_absolute_error\n\n# Function for comparing different models\ndef score_model(model, X_t=X_train, X_v=X_valid, y_t=y_train, y_v=y_valid):\n    model.fit(X_t, y_t)\n    preds = model.predict(X_v)\n    return mean_absolute_error(y_v, preds)\n\nfor i in range(0, len(models)):\n    mae = score_model(models[i])\n    print(\"Model %d MAE: %d\" % (i+1, mae))","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T09:05:02.339219Z","iopub.execute_input":"2026-02-26T09:05:02.339571Z","iopub.status.idle":"2026-02-26T09:05:09.494276Z","shell.execute_reply.started":"2026-02-26T09:05:02.339541Z","shell.execute_reply":"2026-02-26T09:05:09.493256Z"}},"outputs":[{"name":"stdout","text":"Model 1 MAE: 24015\nModel 2 MAE: 23740\nModel 3 MAE: 23528\nModel 4 MAE: 23996\nModel 5 MAE: 23706\n","output_type":"stream"}],"execution_count":5},{"cell_type":"markdown","source":"# Step 1: Evaluate several models\n\nUse the above results to fill in the line below.  Which model is the best model?  Your answer should be one of `model_1`, `model_2`, `model_3`, `model_4`, or `model_5`.","metadata":{}},{"cell_type":"code","source":"# Fill in the best model\nbest_model = model_3\n\n# Check your answer\nstep_1.check()","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T09:06:37.013207Z","iopub.execute_input":"2026-02-26T09:06:37.013566Z","iopub.status.idle":"2026-02-26T09:06:37.022594Z","shell.execute_reply.started":"2026-02-26T09:06:37.013533Z","shell.execute_reply":"2026-02-26T09:06:37.021570Z"}},"outputs":[{"output_type":"display_data","data":{"text/plain":"<IPython.core.display.Javascript object>","application/javascript":"parent.postMessage({\"jupyterEvent\": \"custom.exercise_interaction\", \"data\": {\"outcomeType\": 1, \"valueTowardsCompletion\": 0.5, \"interactionType\": 1, \"questionType\": 2, \"questionId\": \"1_BestModel\", \"learnToolsVersion\": \"0.3.5\", \"failureMessage\": \"\", \"exceptionClass\": \"\", \"trace\": \"\"}}, \"*\")"},"metadata":{}},{"output_type":"display_data","data":{"text/plain":"Correct","text/markdown":"<span style=\"color:#33cc33\">Correct</span>"},"metadata":{}}],"execution_count":6},{"cell_type":"code","source":"# Lines below will give you a hint or solution code\n#step_1.hint()\n#step_1.solution()","metadata":{},"outputs":[],"execution_count":null},{"cell_type":"markdown","source":"# Step 2: Generate test predictions\n\nGreat. You know how to evaluate what makes an accurate model. Now it's time to go through the modeling process and make predictions. In the line below, create a Random Forest model with the variable name `my_model`.","metadata":{}},{"cell_type":"code","source":"# Define a model\nmy_model = RandomForestRegressor(n_estimators=150, criterion='absolute_error' ,random_state=0)\n\n# Check your answer\nstep_2.check()","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T09:10:37.132345Z","iopub.execute_input":"2026-02-26T09:10:37.132697Z","iopub.status.idle":"2026-02-26T09:10:37.140982Z","shell.execute_reply.started":"2026-02-26T09:10:37.132672Z","shell.execute_reply":"2026-02-26T09:10:37.140044Z"}},"outputs":[{"output_type":"display_data","data":{"text/plain":"<IPython.core.display.Javascript object>","application/javascript":"parent.postMessage({\"jupyterEvent\": \"custom.exercise_interaction\", \"data\": {\"outcomeType\": 1, \"valueTowardsCompletion\": 0.5, \"interactionType\": 1, \"questionType\": 2, \"questionId\": \"2_Predictions\", \"learnToolsVersion\": \"0.3.5\", \"failureMessage\": \"\", \"exceptionClass\": \"\", \"trace\": \"\"}}, \"*\")"},"metadata":{}},{"output_type":"display_data","data":{"text/plain":"Correct","text/markdown":"<span style=\"color:#33cc33\">Correct</span>"},"metadata":{}}],"execution_count":7},{"cell_type":"code","source":"# Lines below will give you a hint or solution code\n#step_2.hint()\n#step_2.solution()","metadata":{},"outputs":[],"execution_count":null},{"cell_type":"markdown","source":"Run the next code cell without changes.  The code fits the model to the training and validation data, and then generates test predictions that are saved to a CSV file.  These test predictions can be submitted directly to the competition!","metadata":{}},{"cell_type":"code","source":"# Fit the model to the training data\nmy_model.fit(X, y)\n\n# Generate test predictions\npreds_test = my_model.predict(X_test)\n\n# Save predictions in format used for competition scoring\noutput = pd.DataFrame({'Id': X_test.index,\n                       'SalePrice': preds_test})\noutput.to_csv('submission.csv', index=False)","metadata":{"trusted":true,"execution":{"iopub.status.busy":"2026-02-26T09:11:08.245441Z","iopub.execute_input":"2026-02-26T09:11:08.246078Z","iopub.status.idle":"2026-02-26T09:11:20.795123Z","shell.execute_reply.started":"2026-02-26T09:11:08.246050Z","shell.execute_reply":"2026-02-26T09:11:20.794230Z"}},"outputs":[],"execution_count":8},{"cell_type":"markdown","source":"# Submit your results\n\nOnce you have successfully completed Step 2, you're ready to submit your results to the leaderboard!  First, you'll need to join the competition if you haven't already.  So open a new window by clicking on [this link](https://www.kaggle.com/c/home-data-for-ml-course).  Then click on the **Join Competition** button.  _(If you see a \"Submit Predictions\" button instead of a \"Join Competition\" button, you have already joined the competition, and don't need to do so again.)_\n\nNext, follow the instructions below:\n1. Begin by clicking on the **Save Version** button in the top right corner of the window.  This will generate a pop-up window.  \n2. Ensure that the **Save and Run All** option is selected, and then click on the **Save** button.\n3. This generates a window in the bottom left corner of the notebook.  After it has finished running, click on the number to the right of the **Save Version** button.  This pulls up a list of versions on the right of the screen.  Click on the ellipsis **(...)** to the right of the most recent version, and select **Open in Viewer**.  This brings you into view mode of the same page. You will need to scroll down to get back to these instructions.\n4. Click on the **Data** tab near the top of the screen.  Then, click on the file you would like to submit, and click on the **Submit** button to submit your results to the leaderboard.\n\nYou have now successfully submitted to the competition!\n\nIf you want to keep working to improve your performance, select the **Edit** button in the top right of the screen. Then you can change your code and repeat the process. There's a lot of room to improve, and you will climb up the leaderboard as you work.\n","metadata":{}},{"cell_type":"markdown","source":"# Keep going\n\nYou've made your first model. But how can you quickly make it better?\n\nLearn how to improve your competition results by incorporating columns with **[missing values](https://www.kaggle.com/alexisbcook/missing-values)**.","metadata":{}},{"cell_type":"markdown","source":"---\n\n\n\n\n*Have questions or comments? Visit the [course discussion forum](https://www.kaggle.com/learn/intermediate-machine-learning/discussion) to chat with other learners.*","metadata":{}}]}
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "b79c7c6a",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004183,
+     "end_time": "2026-02-26T09:16:33.371367",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:33.367184",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "**This notebook is an exercise in the [Intermediate Machine Learning](https://www.kaggle.com/learn/intermediate-machine-learning) course.  You can reference the tutorial at [this link](https://www.kaggle.com/alexisbcook/introduction).**\n",
+    "\n",
+    "---\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d77a9ff1",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003043,
+     "end_time": "2026-02-26T09:16:33.378000",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:33.374957",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "As a warm-up, you'll review some machine learning fundamentals and submit your initial results to a Kaggle competition.\n",
+    "\n",
+    "# Setup\n",
+    "\n",
+    "The questions below will give you feedback on your work. Run the following cell to set up the feedback system."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "985d17d3",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:33.386254Z",
+     "iopub.status.busy": "2026-02-26T09:16:33.385455Z",
+     "iopub.status.idle": "2026-02-26T09:16:36.966172Z",
+     "shell.execute_reply": "2026-02-26T09:16:36.965326Z"
+    },
+    "papermill": {
+     "duration": 3.586217,
+     "end_time": "2026-02-26T09:16:36.967569",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:33.381352",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Setup Complete\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Set up code checking\n",
+    "import os\n",
+    "if not os.path.exists(\"../input/train.csv\"):\n",
+    "    os.symlink(\"../input/home-data-for-ml-course/train.csv\", \"../input/train.csv\")  \n",
+    "    os.symlink(\"../input/home-data-for-ml-course/test.csv\", \"../input/test.csv\")  \n",
+    "from learntools.core import binder\n",
+    "binder.bind(globals())\n",
+    "from learntools.ml_intermediate.ex1 import *\n",
+    "print(\"Setup Complete\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "e00fd42e",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003119,
+     "end_time": "2026-02-26T09:16:36.974215",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:36.971096",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "You will work with data from the [Housing Prices Competition for Kaggle Learn Users](https://www.kaggle.com/c/home-data-for-ml-course) to predict home prices in Iowa using 79 explanatory variables describing (almost) every aspect of the homes.  \n",
+    "\n",
+    "![Ames Housing dataset image](https://storage.googleapis.com/kaggle-media/learn/images/lTJVG4e.png)\n",
+    "\n",
+    "Run the next code cell without changes to load the training and validation features in `X_train` and `X_valid`, along with the prediction targets in `y_train` and `y_valid`.  The test features are loaded in `X_test`.  (_If you need to review **features** and **prediction targets**, please check out [this short tutorial](https://www.kaggle.com/dansbecker/your-first-machine-learning-model).  To read about model **validation**, look [here](https://www.kaggle.com/dansbecker/model-validation).  Alternatively, if you'd prefer to look through a full course to review all of these topics, start [here](https://www.kaggle.com/learn/machine-learning).)_"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "fb0ab6b2",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:36.982560Z",
+     "iopub.status.busy": "2026-02-26T09:16:36.981604Z",
+     "iopub.status.idle": "2026-02-26T09:16:37.059469Z",
+     "shell.execute_reply": "2026-02-26T09:16:37.058561Z"
+    },
+    "papermill": {
+     "duration": 0.08355,
+     "end_time": "2026-02-26T09:16:37.061023",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:36.977473",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "import pandas as pd\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "\n",
+    "# Read the data\n",
+    "X_full = pd.read_csv('../input/train.csv', index_col='Id')\n",
+    "X_test_full = pd.read_csv('../input/test.csv', index_col='Id')\n",
+    "\n",
+    "# Obtain target and predictors\n",
+    "y = X_full.SalePrice\n",
+    "features = ['LotArea', 'YearBuilt', '1stFlrSF', '2ndFlrSF', 'FullBath', 'BedroomAbvGr', 'TotRmsAbvGrd']\n",
+    "X = X_full[features].copy()\n",
+    "X_test = X_test_full[features].copy()\n",
+    "\n",
+    "# Break off validation set from training data\n",
+    "X_train, X_valid, y_train, y_valid = train_test_split(X, y, train_size=0.8, test_size=0.2,\n",
+    "                                                      random_state=0)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "480ca831",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003491,
+     "end_time": "2026-02-26T09:16:37.068133",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:37.064642",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "Use the next cell to print the first several rows of the data. It's a nice way to get an overview of the data you will use in your price prediction model."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "c1439268",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:37.075849Z",
+     "iopub.status.busy": "2026-02-26T09:16:37.075489Z",
+     "iopub.status.idle": "2026-02-26T09:16:37.095469Z",
+     "shell.execute_reply": "2026-02-26T09:16:37.094596Z"
+    },
+    "papermill": {
+     "duration": 0.025388,
+     "end_time": "2026-02-26T09:16:37.096791",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:37.071403",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "text/html": [
+       "<div>\n",
+       "<style scoped>\n",
+       "    .dataframe tbody tr th:only-of-type {\n",
+       "        vertical-align: middle;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe tbody tr th {\n",
+       "        vertical-align: top;\n",
+       "    }\n",
+       "\n",
+       "    .dataframe thead th {\n",
+       "        text-align: right;\n",
+       "    }\n",
+       "</style>\n",
+       "<table border=\"1\" class=\"dataframe\">\n",
+       "  <thead>\n",
+       "    <tr style=\"text-align: right;\">\n",
+       "      <th></th>\n",
+       "      <th>LotArea</th>\n",
+       "      <th>YearBuilt</th>\n",
+       "      <th>1stFlrSF</th>\n",
+       "      <th>2ndFlrSF</th>\n",
+       "      <th>FullBath</th>\n",
+       "      <th>BedroomAbvGr</th>\n",
+       "      <th>TotRmsAbvGrd</th>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>Id</th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "      <th></th>\n",
+       "    </tr>\n",
+       "  </thead>\n",
+       "  <tbody>\n",
+       "    <tr>\n",
+       "      <th>619</th>\n",
+       "      <td>11694</td>\n",
+       "      <td>2007</td>\n",
+       "      <td>1828</td>\n",
+       "      <td>0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>3</td>\n",
+       "      <td>9</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>871</th>\n",
+       "      <td>6600</td>\n",
+       "      <td>1962</td>\n",
+       "      <td>894</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>2</td>\n",
+       "      <td>5</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>93</th>\n",
+       "      <td>13360</td>\n",
+       "      <td>1921</td>\n",
+       "      <td>964</td>\n",
+       "      <td>0</td>\n",
+       "      <td>1</td>\n",
+       "      <td>2</td>\n",
+       "      <td>5</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>818</th>\n",
+       "      <td>13265</td>\n",
+       "      <td>2002</td>\n",
+       "      <td>1689</td>\n",
+       "      <td>0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>3</td>\n",
+       "      <td>7</td>\n",
+       "    </tr>\n",
+       "    <tr>\n",
+       "      <th>303</th>\n",
+       "      <td>13704</td>\n",
+       "      <td>2001</td>\n",
+       "      <td>1541</td>\n",
+       "      <td>0</td>\n",
+       "      <td>2</td>\n",
+       "      <td>3</td>\n",
+       "      <td>6</td>\n",
+       "    </tr>\n",
+       "  </tbody>\n",
+       "</table>\n",
+       "</div>"
+      ],
+      "text/plain": [
+       "     LotArea  YearBuilt  1stFlrSF  2ndFlrSF  FullBath  BedroomAbvGr  \\\n",
+       "Id                                                                    \n",
+       "619    11694       2007      1828         0         2             3   \n",
+       "871     6600       1962       894         0         1             2   \n",
+       "93     13360       1921       964         0         1             2   \n",
+       "818    13265       2002      1689         0         2             3   \n",
+       "303    13704       2001      1541         0         2             3   \n",
+       "\n",
+       "     TotRmsAbvGrd  \n",
+       "Id                 \n",
+       "619             9  \n",
+       "871             5  \n",
+       "93              5  \n",
+       "818             7  \n",
+       "303             6  "
+      ]
+     },
+     "execution_count": 3,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "X_train.head()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "7a4e8f98",
+   "metadata": {
+    "papermill": {
+     "duration": 0.00351,
+     "end_time": "2026-02-26T09:16:37.104157",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:37.100647",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "The next code cell defines five different random forest models.  Run this code cell without changes.  (_To review **random forests**, look [here](https://www.kaggle.com/dansbecker/random-forests)._)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "a2ff47ef",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:37.112970Z",
+     "iopub.status.busy": "2026-02-26T09:16:37.112212Z",
+     "iopub.status.idle": "2026-02-26T09:16:37.117398Z",
+     "shell.execute_reply": "2026-02-26T09:16:37.116736Z"
+    },
+    "papermill": {
+     "duration": 0.010828,
+     "end_time": "2026-02-26T09:16:37.118811",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:37.107983",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "from sklearn.ensemble import RandomForestRegressor\n",
+    "\n",
+    "# Define the models\n",
+    "model_1 = RandomForestRegressor(n_estimators=50, random_state=0)\n",
+    "model_2 = RandomForestRegressor(n_estimators=100, random_state=0)\n",
+    "model_3 = RandomForestRegressor(n_estimators=100, criterion='absolute_error', random_state=0)\n",
+    "model_4 = RandomForestRegressor(n_estimators=200, min_samples_split=20, random_state=0)\n",
+    "model_5 = RandomForestRegressor(n_estimators=100, max_depth=7, random_state=0)\n",
+    "\n",
+    "models = [model_1, model_2, model_3, model_4, model_5]"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "9e5d7036",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003346,
+     "end_time": "2026-02-26T09:16:37.126022",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:37.122676",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "To select the best model out of the five, we define a function `score_model()` below.  This function returns the mean absolute error (MAE) from the validation set.  Recall that the best model will obtain the lowest MAE.  (_To review **mean absolute error**, look [here](https://www.kaggle.com/dansbecker/model-validation).)_\n",
+    "\n",
+    "Run the code cell without changes."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "f4c919c3",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:37.134371Z",
+     "iopub.status.busy": "2026-02-26T09:16:37.133624Z",
+     "iopub.status.idle": "2026-02-26T09:16:41.899174Z",
+     "shell.execute_reply": "2026-02-26T09:16:41.898189Z"
+    },
+    "papermill": {
+     "duration": 4.771138,
+     "end_time": "2026-02-26T09:16:41.900593",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:37.129455",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Model 1 MAE: 24015\n",
+      "Model 2 MAE: 23740\n",
+      "Model 3 MAE: 23528\n",
+      "Model 4 MAE: 23996\n",
+      "Model 5 MAE: 23706\n"
+     ]
+    }
+   ],
+   "source": [
+    "from sklearn.metrics import mean_absolute_error\n",
+    "\n",
+    "# Function for comparing different models\n",
+    "def score_model(model, X_t=X_train, X_v=X_valid, y_t=y_train, y_v=y_valid):\n",
+    "    model.fit(X_t, y_t)\n",
+    "    preds = model.predict(X_v)\n",
+    "    return mean_absolute_error(y_v, preds)\n",
+    "\n",
+    "for i in range(0, len(models)):\n",
+    "    mae = score_model(models[i])\n",
+    "    print(\"Model %d MAE: %d\" % (i+1, mae))"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "939f6138",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003629,
+     "end_time": "2026-02-26T09:16:41.908293",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.904664",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "# Step 1: Evaluate several models\n",
+    "\n",
+    "Use the above results to fill in the line below.  Which model is the best model?  Your answer should be one of `model_1`, `model_2`, `model_3`, `model_4`, or `model_5`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "cdfc13d2",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:41.917408Z",
+     "iopub.status.busy": "2026-02-26T09:16:41.916642Z",
+     "iopub.status.idle": "2026-02-26T09:16:41.923522Z",
+     "shell.execute_reply": "2026-02-26T09:16:41.922904Z"
+    },
+    "papermill": {
+     "duration": 0.012676,
+     "end_time": "2026-02-26T09:16:41.924638",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.911962",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "application/javascript": [
+       "parent.postMessage({\"jupyterEvent\": \"custom.exercise_interaction\", \"data\": {\"outcomeType\": 1, \"valueTowardsCompletion\": 0.5, \"interactionType\": 1, \"questionType\": 2, \"questionId\": \"1_BestModel\", \"learnToolsVersion\": \"0.3.5\", \"failureMessage\": \"\", \"exceptionClass\": \"\", \"trace\": \"\"}}, \"*\")"
+      ],
+      "text/plain": [
+       "<IPython.core.display.Javascript object>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/markdown": [
+       "<span style=\"color:#33cc33\">Correct</span>"
+      ],
+      "text/plain": [
+       "Correct"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# Fill in the best model\n",
+    "best_model = model_3\n",
+    "\n",
+    "# Check your answer\n",
+    "step_1.check()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "b2142b5a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:41.934157Z",
+     "iopub.status.busy": "2026-02-26T09:16:41.933881Z",
+     "iopub.status.idle": "2026-02-26T09:16:41.937464Z",
+     "shell.execute_reply": "2026-02-26T09:16:41.936752Z"
+    },
+    "papermill": {
+     "duration": 0.009907,
+     "end_time": "2026-02-26T09:16:41.938656",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.928749",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Lines below will give you a hint or solution code\n",
+    "#step_1.hint()\n",
+    "#step_1.solution()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "59c8bfd3",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003647,
+     "end_time": "2026-02-26T09:16:41.946306",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.942659",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "# Step 2: Generate test predictions\n",
+    "\n",
+    "Great. You know how to evaluate what makes an accurate model. Now it's time to go through the modeling process and make predictions. In the line below, create a Random Forest model with the variable name `my_model`."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "a5598d8f",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:41.955656Z",
+     "iopub.status.busy": "2026-02-26T09:16:41.954806Z",
+     "iopub.status.idle": "2026-02-26T09:16:41.962373Z",
+     "shell.execute_reply": "2026-02-26T09:16:41.961533Z"
+    },
+    "papermill": {
+     "duration": 0.013676,
+     "end_time": "2026-02-26T09:16:41.963723",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.950047",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [
+    {
+     "data": {
+      "application/javascript": [
+       "parent.postMessage({\"jupyterEvent\": \"custom.exercise_interaction\", \"data\": {\"outcomeType\": 1, \"valueTowardsCompletion\": 0.5, \"interactionType\": 1, \"questionType\": 2, \"questionId\": \"2_Predictions\", \"learnToolsVersion\": \"0.3.5\", \"failureMessage\": \"\", \"exceptionClass\": \"\", \"trace\": \"\"}}, \"*\")"
+      ],
+      "text/plain": [
+       "<IPython.core.display.Javascript object>"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    },
+    {
+     "data": {
+      "text/markdown": [
+       "<span style=\"color:#33cc33\">Correct</span>"
+      ],
+      "text/plain": [
+       "Correct"
+      ]
+     },
+     "metadata": {},
+     "output_type": "display_data"
+    }
+   ],
+   "source": [
+    "# Define a model\n",
+    "my_model = RandomForestRegressor(n_estimators=150, criterion='absolute_error' ,random_state=0)\n",
+    "\n",
+    "# Check your answer\n",
+    "step_2.check()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "90e74e95",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:41.973435Z",
+     "iopub.status.busy": "2026-02-26T09:16:41.972894Z",
+     "iopub.status.idle": "2026-02-26T09:16:41.976585Z",
+     "shell.execute_reply": "2026-02-26T09:16:41.975917Z"
+    },
+    "papermill": {
+     "duration": 0.009922,
+     "end_time": "2026-02-26T09:16:41.977911",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.967989",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Lines below will give you a hint or solution code\n",
+    "#step_2.hint()\n",
+    "#step_2.solution()"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "1236b41d",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003996,
+     "end_time": "2026-02-26T09:16:41.986292",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.982296",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "Run the next code cell without changes.  The code fits the model to the training and validation data, and then generates test predictions that are saved to a CSV file.  These test predictions can be submitted directly to the competition!"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "c559eb4a",
+   "metadata": {
+    "execution": {
+     "iopub.execute_input": "2026-02-26T09:16:41.996478Z",
+     "iopub.status.busy": "2026-02-26T09:16:41.995487Z",
+     "iopub.status.idle": "2026-02-26T09:16:48.227998Z",
+     "shell.execute_reply": "2026-02-26T09:16:48.227128Z"
+    },
+    "papermill": {
+     "duration": 6.239126,
+     "end_time": "2026-02-26T09:16:48.229546",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:41.990420",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "outputs": [],
+   "source": [
+    "# Fit the model to the training data\n",
+    "my_model.fit(X, y)\n",
+    "\n",
+    "# Generate test predictions\n",
+    "preds_test = my_model.predict(X_test)\n",
+    "\n",
+    "# Save predictions in format used for competition scoring\n",
+    "output = pd.DataFrame({'Id': X_test.index,\n",
+    "                       'SalePrice': preds_test})\n",
+    "output.to_csv('submission.csv', index=False)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "54795d9c",
+   "metadata": {
+    "papermill": {
+     "duration": 0.004019,
+     "end_time": "2026-02-26T09:16:48.237982",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:48.233963",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "# Submit your results\n",
+    "\n",
+    "Once you have successfully completed Step 2, you're ready to submit your results to the leaderboard!  First, you'll need to join the competition if you haven't already.  So open a new window by clicking on [this link](https://www.kaggle.com/c/home-data-for-ml-course).  Then click on the **Join Competition** button.  _(If you see a \"Submit Predictions\" button instead of a \"Join Competition\" button, you have already joined the competition, and don't need to do so again.)_\n",
+    "\n",
+    "Next, follow the instructions below:\n",
+    "1. Begin by clicking on the **Save Version** button in the top right corner of the window.  This will generate a pop-up window.  \n",
+    "2. Ensure that the **Save and Run All** option is selected, and then click on the **Save** button.\n",
+    "3. This generates a window in the bottom left corner of the notebook.  After it has finished running, click on the number to the right of the **Save Version** button.  This pulls up a list of versions on the right of the screen.  Click on the ellipsis **(...)** to the right of the most recent version, and select **Open in Viewer**.  This brings you into view mode of the same page. You will need to scroll down to get back to these instructions.\n",
+    "4. Click on the **Data** tab near the top of the screen.  Then, click on the file you would like to submit, and click on the **Submit** button to submit your results to the leaderboard.\n",
+    "\n",
+    "You have now successfully submitted to the competition!\n",
+    "\n",
+    "If you want to keep working to improve your performance, select the **Edit** button in the top right of the screen. Then you can change your code and repeat the process. There's a lot of room to improve, and you will climb up the leaderboard as you work.\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "14e990ea",
+   "metadata": {
+    "papermill": {
+     "duration": 0.003914,
+     "end_time": "2026-02-26T09:16:48.245965",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:48.242051",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "# Keep going\n",
+    "\n",
+    "You've made your first model. But how can you quickly make it better?\n",
+    "\n",
+    "Learn how to improve your competition results by incorporating columns with **[missing values](https://www.kaggle.com/alexisbcook/missing-values)**."
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "0bc7260c",
+   "metadata": {
+    "papermill": {
+     "duration": 0.00385,
+     "end_time": "2026-02-26T09:16:48.253896",
+     "exception": false,
+     "start_time": "2026-02-26T09:16:48.250046",
+     "status": "completed"
+    },
+    "tags": []
+   },
+   "source": [
+    "---\n",
+    "\n",
+    "\n",
+    "\n",
+    "\n",
+    "*Have questions or comments? Visit the [course discussion forum](https://www.kaggle.com/learn/intermediate-machine-learning/discussion) to chat with other learners.*"
+   ]
+  }
+ ],
+ "metadata": {
+  "kaggle": {
+   "accelerator": "none",
+   "dataSources": [
+    {
+     "databundleVersionId": 111096,
+     "sourceId": 10211,
+     "sourceType": "competition"
+    }
+   ],
+   "dockerImageVersionId": 31153,
+   "isGpuEnabled": false,
+   "isInternetEnabled": false,
+   "language": "python",
+   "sourceType": "notebook"
+  },
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.11.13"
+  },
+  "papermill": {
+   "default_parameters": {},
+   "duration": 19.976169,
+   "end_time": "2026-02-26T09:16:48.878227",
+   "environment_variables": {},
+   "exception": null,
+   "input_path": "__notebook__.ipynb",
+   "output_path": "__notebook__.ipynb",
+   "parameters": {},
+   "start_time": "2026-02-26T09:16:28.902058",
+   "version": "2.6.0"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
